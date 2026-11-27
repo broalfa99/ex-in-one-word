@@ -5,6 +5,7 @@
 // gate requires: UTF-8 text, 1 to 111 characters, not only whitespace,
 // one word.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Candidates judged against the judge's brief (verdict on an ex first,
 // then comic punch, surprise, craft, recognition):
@@ -33,27 +34,34 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 // tricks, and anyone who has ever uninstalled something nods at it.
 const WORD = "Uninstalled";
 
-function main(): void {
-  // Enforce the competition's gate locally: 1 to 111 characters.
-  if (!(WORD.length >= 1 && WORD.length <= 111)) {
-    throw new Error(`word is ${WORD.length} chars, gate needs 1-111`);
+// The competition's gate: UTF-8 text, 1 to 111 characters, not only
+// whitespace, exactly one word. Checked up front so a bad word fails
+// loudly instead of writing a losing file.
+function validateWord(word: string): void {
+  if (!(word.length >= 1 && word.length <= 111)) {
+    throw new Error(`word is ${word.length} chars, gate needs 1-111`);
   }
-  if (!WORD.trim()) {
+  if (!word.trim()) {
     throw new Error("word must not be only whitespace");
   }
-  if (/\s/.test(WORD)) {
+  if (/\s/.test(word)) {
     throw new Error("entry must be a single word");
   }
+}
+
+function main(): void {
+  validateWord(WORD);
   const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+  const outFile = join(outDir, "entry.txt");
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(`${outDir}/entry.txt`, WORD, "utf8");
+  writeFileSync(outFile, WORD, "utf8");
   // Read it back: the file the judge sees must be exactly the word.
-  const roundTrip = readFileSync(`${outDir}/entry.txt`, "utf8");
+  const roundTrip = readFileSync(outFile, "utf8");
   if (roundTrip !== WORD) {
     throw new Error(`round-trip mismatch: ${JSON.stringify(roundTrip)}`);
   }
   // 11 characters: one word, inside the 1–111 gate.
-  console.log(`wrote ${WORD.length} chars to ${outDir}/entry.txt`);
+  console.log(`wrote ${WORD.length} chars (${WORD}) to ${outFile}`);
 }
 
 main();
